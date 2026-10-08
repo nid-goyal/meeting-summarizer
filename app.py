@@ -34,19 +34,25 @@ if st.button("Generate Summary & Action Items", type="primary"):
             # Configure API key
             genai.configure(api_key=api_key_input)
             
-            # Dynamically select an available model supporting content generation
-            available_models = [
-                m.name for m in genai.list_models() 
-                if 'generateContent' in m.supported_generation_methods
-            ]
+            # List models and pick the active model supported by your key
+            candidate_models = ['gemini-3.8-flash', 'gemini-1.5-flash', 'gemini-3.5-flash']
+            model_to_use = None
             
-            # Prefer flash model, fallback to first available
-            selected_model_name = next(
-                (m for m in available_models if 'flash' in m), 
-                available_models[0] if available_models else 'models/gemini-1.5-flash-latest'
-            )
-            
-            model = genai.GenerativeModel(selected_model_name)
+            try:
+                available = [m.name.replace('models/', '') for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                for cm in candidate_models:
+                    if cm in available:
+                        model_to_use = cm
+                        break
+                if not model_to_use and available:
+                    model_to_use = available[0]
+            except Exception:
+                model_to_use = 'gemini-3.8-flash'
+                
+            if not model_to_use:
+                model_to_use = 'gemini-3.8-flash'
+
+            model = genai.GenerativeModel(model_to_use)
 
             prompt = f"""
             You are an expert executive assistant and business operations specialist.
@@ -62,7 +68,7 @@ if st.button("Generate Summary & Action Items", type="primary"):
             \"\"\"{transcript_text}\"\"\"
             """
 
-            with st.spinner(f"Analyzing transcript using {selected_model_name}..."):
+            with st.spinner(f"Analyzing transcript using {model_to_use}..."):
                 response = model.generate_content(prompt)
 
                 st.markdown("### 📌 Executive Summary & Action Items")
