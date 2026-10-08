@@ -1,6 +1,5 @@
 import streamlit as st
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 # Page setup
 st.set_page_config(
@@ -32,28 +31,28 @@ if st.button("Generate Summary & Action Items", type="primary"):
         st.warning("Please paste a transcript before running.")
     else:
         try:
-            client = genai.Client(api_key=api_key_input)
+            # Configure API key
+            genai.configure(api_key=api_key_input)
+            
+            # Initialize model
+            model = genai.GenerativeModel('gemini-1.5-flash')
 
-            system_prompt = """
+            prompt = f"""
             You are an expert executive assistant and business operations specialist.
-            Your task is to analyze the meeting transcript and extract:
+            Analyze the meeting transcript and extract:
             1. Key Discussion Points (Executive Summary)
             2. Action Items (Owner, Task Description, Due Date)
 
             Guardrails:
             - Stick strictly to facts mentioned in the transcript. Do NOT hallucinate tasks or owners not present in the text.
             - If the input text is off-topic, gibberish, or not a meeting transcript, refuse to analyze and state clearly that invalid input was provided.
+
+            Transcript:
+            \"\"\"{transcript_text}\"\"\"
             """
 
             with st.spinner("Analyzing transcript with Gemini AI..."):
-                response = client.models.generate_content(
-                    model='gemini-2.0-flash',
-                    contents=f"Transcript:\n\"\"\"{transcript_text}\"\"\"",
-                    config=types.GenerateContentConfig(
-                        system_instruction=system_prompt,
-                        temperature=0.2,
-                    )
-                )
+                response = model.generate_content(prompt)
 
                 st.markdown("### 📌 Executive Summary & Action Items")
                 st.write(response.text)
