@@ -34,8 +34,19 @@ if st.button("Generate Summary & Action Items", type="primary"):
             # Configure API key
             genai.configure(api_key=api_key_input)
             
-            # Initialize model
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            # Dynamically select an available model supporting content generation
+            available_models = [
+                m.name for m in genai.list_models() 
+                if 'generateContent' in m.supported_generation_methods
+            ]
+            
+            # Prefer flash model, fallback to first available
+            selected_model_name = next(
+                (m for m in available_models if 'flash' in m), 
+                available_models[0] if available_models else 'models/gemini-1.5-flash-latest'
+            )
+            
+            model = genai.GenerativeModel(selected_model_name)
 
             prompt = f"""
             You are an expert executive assistant and business operations specialist.
@@ -51,7 +62,7 @@ if st.button("Generate Summary & Action Items", type="primary"):
             \"\"\"{transcript_text}\"\"\"
             """
 
-            with st.spinner("Analyzing transcript with Gemini AI..."):
+            with st.spinner(f"Analyzing transcript using {selected_model_name}..."):
                 response = model.generate_content(prompt)
 
                 st.markdown("### 📌 Executive Summary & Action Items")
